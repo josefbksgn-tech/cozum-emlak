@@ -1,6 +1,0 @@
-User-agent: *
-Disallow: /admin.html
-Disallow: /tv.html
-Disallow: /poster.html
-Disallow: /api/
-# Alan adınızı bağlayınca ekleyin: Sitemap: https://ALANADINIZ/sitemap.xml
