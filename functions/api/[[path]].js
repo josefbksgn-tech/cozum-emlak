@@ -1,7 +1,5 @@
 // Pages Function: /api/*  Bindings: DB (D1), R2 | Secrets: ADMIN_USER, ADMIN_PASS, SECRET
 const J=(d,s=200)=>new Response(JSON.stringify(d),{status:s,headers:{'content-type':'application/json','cache-control':'no-store'}});
-const pick=(env,t)=>Object.values(env).find(v=>v&&typeof v==='object'&&(t==='d1'?typeof v.prepare==='function':typeof v.put==='function'&&typeof v.head==='function'));
-const nameOf=(env,o)=>Object.keys(env).find(k=>env[k]===o)||null;
 const enc=new TextEncoder();
 async function sign(s,k){const key=await crypto.subtle.importKey('raw',enc.encode(k),{name:'HMAC',hash:'SHA-256'},false,['sign']);
  return [...new Uint8Array(await crypto.subtle.sign('HMAC',key,enc.encode(s)))].map(b=>b.toString(16).padStart(2,'0')).join('')}
@@ -12,7 +10,7 @@ const COLS=['title','type','category','status','price','city','district','hood',
 const vals=b=>[...COLS.map(c=>b[c]??null),JSON.stringify(b.attrs||{}),JSON.stringify(b.images||[])];
 
 export async function onRequest({request:req,env,params}){
- const [a,b,c]=params.path||[],db=pick(env,'d1'),R2=pick(env,'r2'),u=new URL(req.url),m=req.method;
+ const [a,b,c]=params.path||[],db=env.DB,R2=env.IMAGES_BUCKET,u=new URL(req.url),m=req.method;
  if((a==='login'||a==='admin')&&!(env.SECRET&&env.ADMIN_USER&&env.ADMIN_PASS))return J({error:'Sunucu ayarı eksik: ADMIN_USER, ADMIN_PASS, SECRET'},500);
  if(!db&&a!=='img')return J({error:'D1 veritabanı bağlantısı bulunamadı (Pages > Ayarlar > Bağlantılar)'},500);
  try{
@@ -64,7 +62,7 @@ export async function onRequest({request:req,env,params}){
   }
   if(b==='listings'&&c&&m==='DELETE'){await db.prepare('DELETE FROM listings WHERE id=?').bind(c).run();return J({ok:1})}
   if(b==='health'){
-   const out={db:{binding:nameOf(env,db)},r2:{binding:nameOf(env,R2)},secrets:{ADMIN_USER:!!env.ADMIN_USER,ADMIN_PASS:!!env.ADMIN_PASS,SECRET:!!env.SECRET}};
+   const out={db:{binding:'DB'},r2:{binding:'IMAGES_BUCKET'},secrets:{ADMIN_USER:!!env.ADMIN_USER,ADMIN_PASS:!!env.ADMIN_PASS,SECRET:!!env.SECRET}};
    for(const t of['listings','locations','leads','settings']){try{out.db[t]=(await db.prepare(`SELECT COUNT(*) n FROM ${t}`).first()).n}catch(e){out.db[t]='HATA: '+e.message}}
    if(!R2)out.r2.write='HATA: R2 bağlantısı yok';else try{await R2.put('_health.txt','ok');await R2.delete('_health.txt');out.r2.write=true}catch(e){out.r2.write='HATA: '+e.message}
    return J(out);
@@ -83,7 +81,7 @@ export async function onRequest({request:req,env,params}){
   if(b==='leads'){const {results}=await db.prepare('SELECT * FROM leads ORDER BY id DESC LIMIT 200').all();return J(results)}
   if(b==='settings'&&m==='PUT'){await db.prepare("INSERT OR REPLACE INTO settings(k,v) VALUES('site',?)").bind(JSON.stringify(await req.json())).run();return J({ok:1})}
   if(b==='upload'&&m==='POST'){
-   if(!R2)return J({error:"R2 bağlantısı bulunamadı. Pages > Ayarlar > Bağlantılar bölümünden cozum-emlak-images bucket'ını ekleyip yeniden yayınlayın."},500);
+   if(!R2)return J({error:"R2 bağlantısı bulunamadı."},500);
    const ct=req.headers.get('content-type')||'',ext=u.searchParams.get('ext')==='mp4'?'mp4':ct.includes('jpeg')?'jpg':ct.includes('png')?'png':'webp',key=crypto.randomUUID()+'.'+ext;
    const data=ext==='mp4'?req.body:await req.arrayBuffer();
    if(ext!=='mp4'&&!data.byteLength)return J({error:'Boş dosya geldi'},400);
