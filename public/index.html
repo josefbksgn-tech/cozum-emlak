@@ -63,7 +63,7 @@ function lead(kind,note,id){
  $('#dd').textContent=kind==='fiyat'?'Fiyat düştüğünde sizi arayacağız.':'Danışmanımız sizi arayacak.';
  $('#lm').value=note||'';$('#dlg').showModal();
  $('#ls').onclick=async e=>{if(!$('#lp').value)return;
-  await fetch('/api/leads',{method:'POST',body:JSON.stringify({kind,name:$('#ln').value,phone:$('#lp').value,note:$('#lm').value,listing_id:id})});alert('Talebiniz alındı, teşekkürler.')}}
+ await fetch('/api/leads',{method:'POST',body:JSON.stringify({kind,name:$('#ln').value,phone:$('#lp').value,note:$('#lm').value,listing_id:id})});alert('Talebiniz alındı, teşekkürler.')}}
 $('#fab').onclick=()=>lead('talep','');
 async function home(){
  app.innerHTML=`<div class="tabs"><button data-t="sale">Satılık</button><button data-t="rent">Kiralık</button></div>
@@ -75,7 +75,7 @@ async function home(){
   $('#mapv').href='https://www.google.com/maps/search/'+encodeURIComponent((F.q||'')+' '+(F.type==='rent'?'kiralık':'satılık')+' '+(CATS[F.cat]||'emlak'));
   const L=await api('listings?'+p);
   $('#g').innerHTML=L.length?L.map(l=>`<div class="card"><a href="#/i/${l.id}" style="text-decoration:none"><img loading="lazy" alt="${esc(l.title)}" src="${esc(l.images[0]||PH)}">
-  ${l.status!=='active'?`<span class="tag">${STAT[l.status]}</span>`:''}<div class="b"><div class="price">${TL(l.price)}${l.type==='rent'?' / ay':''}</div><h3>${esc(l.title)}</h3><div class="m">${esc(l.hood||'')} ${esc(l.district||'')}${l.area?' · '+l.area+' m²':''}</div></div></a>
+  ${l.status!=='active'?`<span class="tag">${STAT[l.status]}</span>`:''}<div class="b"><div class="price">${TL(l.price)}${l.type==='rent'?' / ay':''}</div><h3>${esc(l.title)}</h3><div class="m">${esc(l.hood||'')} ${esc(l.district\vert{}\vert{}'')}${l.area?' · '+l.area+' m²':''}</div></div></a>
   <label class="cmp"><input type="checkbox" data-id="${l.id}" ${CMP.includes(l.id)?'checked':''}> Kıyasla</label></div>`).join(''):'<p class="m">Bu filtreyle ilan yok. Filtreleri genişletin veya talep bırakın.</p>'};
  app.onclick=e=>{const t=e.target;
   if(t.dataset.t){F.type=t.dataset.t;load()}if(t.dataset.c!==undefined&&t.tagName==='BUTTON'){F.cat=t.dataset.c;load()}
@@ -86,7 +86,7 @@ async function home(){
 async function detail(id){
  let seen=false;try{seen=sessionStorage['v'+id];sessionStorage['v'+id]=1}catch{}const l=await api('listings/'+id+(seen?'?v=0':''));if(l.error){app.innerHTML='<p>İlan bulunamadı.</p>';return}
  document.title=l.title+' | Çözüm Emlak';
- const ag=AGENTS[l.agent]?l.agent:Object.keys(AGENTS)[0],url=location.origin+'/ilan/'+id,O=l.attrs._opts||{},M=l.attrs._media||{},P=M.pano||[];
+ const ag=AGENTS[l.agent]?l.agent:Object.keys(AGENTS)[0],url=location.origin+'/#/i/'+id,O=l.attrs._opts||{},M=l.attrs._media||{},P=M.pano||[];
  const rows=[['Mahalle',l.hood],['İlçe / İl',[l.district,l.city].filter(Boolean).join(' / ')],['m²',l.area],...(FIELDS[l.category]||[]).map(([k,n])=>[n,l.attrs[k]])].filter(r=>r[1]);
  app.innerHTML=`<a href="#/">← İlanlara dön</a><div class="two"><div>
  <div class="gal" id="gal">${(l.images.length?l.images:[PH]).map(s=>`<img src="${esc(s)}" alt="${esc(l.title)}">`).join('')}</div>
@@ -95,39 +95,12 @@ async function detail(id){
  <h1 style="margin:0">${esc(l.title)}</h1>${l.status!=='active'?`<p><b style="color:var(--r)">${STAT[l.status]}</b></p>`:''}
  <div class="price" style="font-size:28px">${TL(l.price)}${l.type==='rent'?' / ay':''}</div>
  <table>${rows.map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`).join('')}</table>
- <p style="white-space:pre-line">${esc(l.description)}</p>
- ${O.map!==false?`<iframe loading="lazy" title="Konum" src="https://www.google.com/maps?q=${encodeURIComponent([l.address,l.hood,l.district,l.city].filter(Boolean).join(' '))}&output=embed"></iframe>`:''}</div>
+ <p style="white-space:pre-line">${esc(l.description)}</p>${O.map!==false?`<iframe loading="lazy" title="Konum" src="https://www.google.com/maps?q=${encodeURIComponent([l.address,l.hood,l.district,l.city].filter(Boolean).join(' '))}&output=embed"></iframe>`:''}</div>
  <aside><div class="box"><b>Danışman</b><select id="ag">${Object.keys(AGENTS).map(a=>`<option ${a===ag?'selected':''}>${a}</option>`).join('')}</select>
  <div class="row"><a class="btn call" id="ac">Ara</a><a class="btn wa" id="aw" target="_blank" rel="noopener">WhatsApp</a></div>
- <div class="row"><button class="btn alt" id="sh">WhatsApp'ta paylaş</button>${O.notify!==false?'<button class="btn alt" id="pn">Fiyatı düşünce haber et</button>':''}</div></div>
+ <div class="row"><button class="btn alt" id="sh">WhatsApp'ta paylaş</button><button class="btn alt" id="cp">Linki Kopyala</button></div>
+ <div class="row">${O.notify!==false?'<button class="btn alt" id="pn">Fiyatı düşünce haber et</button>':''}</div></div>
  ${O.calc?`<div class="box" id="cb"><b>Kredi & tapu harcı</b>
  <label>Peşinat (₺)<input id="dp" type="number" value="${Math.round(l.price*.2)}"></label><label>Vade (ay)<input id="mo" type="number" value="120"></label><label>Aylık faiz (%)<input id="rt" type="number" step=".01" value="2.5"></label>
  <p id="cr" class="m"></p></div>`:''}
- <p class="m">Bu ilan ${l.views} kişi tarafından görüntülendi.</p></aside></div>`;
- const wa=()=>{const n=AGENTS[$('#ag').value];$('#ac').href='tel:+'+n;$('#aw').href=`https://wa.me/${n}?text=${encodeURIComponent('Merhaba, '+l.title+' ilanı hakkında bilgi almak istiyorum. '+url)}`;$('#barwa').href=$('#aw').href};
- $('#ag').onchange=wa;wa();
- app.querySelector('.th').onclick=e=>{if(e.target.dataset.i)$('#gal').scrollTo({left:$('#gal').clientWidth*e.target.dataset.i,behavior:'smooth'})};
- const yt=u=>{const m=String(u).match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/);return m?'https://www.youtube-nocookie.com/embed/'+m[1]:''};
- const lp=()=>window.pannellum?Promise.resolve():new Promise(r=>{const c=document.createElement('link');c.rel='stylesheet';c.href='https://cdnjs.cloudflare.com/ajax/libs/pannellum/2.5.6/pannellum.css';document.head.append(c);const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pannellum/2.5.6/pannellum.js';s.onload=r;document.head.append(s)});
- if($('#mv'))$('#mv').onclick=()=>{const y=yt(M.video);$('#mp').innerHTML=y?`<iframe src="${y}" allowfullscreen title="Video" style="height:auto;aspect-ratio:16/9"></iframe>`:`<video src="${esc(M.video)}" controls playsinline style="width:100%;border-radius:10px"></video>`};
- if($('#m360'))$('#m360').onclick=async()=>{await lp();$('#mp').innerHTML=`<div id="pv" style="width:100%;height:340px;border-radius:10px"></div>${P.length>1?`<div class="row">${P.map((_,i)=>`<button class="btn alt" data-p="${i}">Oda ${i+1}</button>`).join('')}</div>`:''}`;
-  const show=i=>pannellum.viewer('pv',{type:'equirectangular',panorama:P[i],autoLoad:true});let v=show(0);$('#mp').onclick=e=>{if(e.target.dataset.p){v.destroy();v=show(+e.target.dataset.p)}}};
- $('#sh').onclick=()=>open('https://wa.me/?text='+encodeURIComponent(l.title+' - '+TL(l.price)+' '+url));
- if($('#pn'))$('#pn').onclick=()=>lead('fiyat','İlan #'+l.id+' '+l.title,l.id);
- if($('#cr')){const calc=()=>{const P=l.price,d=+$('#dp').value||0,n=+$('#mo').value||1,r=(+$('#rt').value||0)/100,c=P-d,
-  pm=r?c*r/(1-Math.pow(1+r,-n)):c/n;$('#cr').innerHTML=`Aylık taksit: <b>${TL(Math.round(pm))}</b><br>Tapu harcı (%2 alıcı + %2 satıcı): <b>${TL(P*.02)} + ${TL(P*.02)}</b><br>Tahmini peşin masraf: <b>${TL(d+P*.02)}</b>`};
-  $('#cb').oninput=calc;calc()}
-}
-async function compare(){
- const L=await Promise.all(CMP.map(i=>api('listings/'+i+'?v=0')));
- const keys=[...new Set(L.flatMap(l=>(FIELDS[l.category]||[]).map(f=>f[0])))],name=Object.fromEntries(Object.values(FIELDS).flat());
- app.innerHTML=`<a href="#/">← İlanlara dön</a><h2>İlan karşılaştırma</h2><div style="overflow-x:auto"><table><tr><th></th>${L.map(l=>`<th><a href="#/i/${l.id}">${esc(l.title)}</a></th>`).join('')}</tr>
- <tr><td>Fiyat</td>${L.map(l=>`<td>${TL(l.price)}</td>`).join('')}</tr><tr><td>Mahalle</td>${L.map(l=>`<td>${esc(l.hood)}</td>`).join('')}</tr><tr><td>m²</td>${L.map(l=>`<td>${l.area||''}</td>`).join('')}</tr>
- ${keys.map(k=>`<tr><td>${name[k]}</td>${L.map(l=>`<td>${esc(l.attrs[k]||'-')}</td>`).join('')}</tr>`).join('')}</table></div>`;
-}
-function route(){const h=location.hash;scrollTo(0,0);document.title='Çözüm Emlak';
- if(h.startsWith('#/i/'))detail(h.slice(4));else if(h==='#/compare')compare();else home()}
-const bar=()=>document.body.classList.toggle('bar-on',location.hash.startsWith('#/i/')||scrollY>300);addEventListener('scroll',bar,{passive:true});const applySite=()=>{$('#hp').href='tel:+'+SITE.phone;$('#hp').textContent=fmt(SITE.phone);$('#barcall').href='tel:+'+SITE.phone;$('#barwa').href='https://wa.me/'+SITE.wa;
- $('#ft').innerHTML=`Çözüm Emlak Gayrimenkul &amp; Danışmanlık · <a href="tel:+${SITE.phone}">${fmt(SITE.phone)}</a> · <a href="https://wa.me/${SITE.wa}">WhatsApp</a>${SITE.instagram?` · <a href="https://instagram.com/${esc(SITE.instagram)}" target="_blank" rel="noopener">Instagram</a>`:''}`};
-addEventListener('hashchange',()=>{applySite();route();bar()});loadSettings().then(()=>{applySite();route();bar();cmpBar()});
-</script></body></html>
+ <p class="m">Bu ilan ${l.
