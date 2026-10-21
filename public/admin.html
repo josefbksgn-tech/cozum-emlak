@@ -1,0 +1,125 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>Yönetim | Çözüm Emlak</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,sans-serif;background:#f4f6f5;color:#151515}
+main{max-width:900px;margin:auto;padding:12px}h1{font-size:20px;border-bottom:3px solid #1f9d55;padding-bottom:8px}
+input,select,textarea{width:100%;padding:11px;border:1px solid #cdd3d0;border-radius:8px;font:inherit;background:#fff;color:#151515}label{font-size:13px;color:#5d6662;display:block;margin-top:6px}
+.f{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+button{padding:10px 14px;border:0;border-radius:8px;background:#151515;color:#fff;cursor:pointer;font:inherit}.g{background:#1f9d55}.r{background:#c8102e}.w{background:#fff;color:#151515;border:1px solid #cdd3d0}
+.card,.it,.sec{background:#fff;border-radius:12px;padding:14px;margin:10px 0}.sec h3{margin:0 0 8px;font-size:16px}
+.it{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.it img{width:64px;height:48px;object-fit:cover;border-radius:4px}.it .i{flex:1;min-width:180px}
+.seg{display:flex;gap:8px}.seg button{flex:1;padding:14px;border:2px solid #cdd3d0;background:#fff;color:#151515;font-weight:700}.seg .on{background:#151515;color:#fff;border-color:#151515}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chips button{border-radius:99px;border:1px solid #cdd3d0;background:#fff;color:#151515}.chips .on{background:#1f9d55;color:#fff;border-color:#1f9d55}
+#dz{border:2px dashed #1f9d55;border-radius:12px;padding:22px;text-align:center;color:#5d6662;cursor:pointer}#dz.o{background:#e6f5ec}
+#ph{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}#ph div{position:relative}#ph img{height:76px;border-radius:6px}#ph b{position:absolute;top:2px;right:2px;background:#c8102e;color:#fff;cursor:pointer;padding:0 7px;border-radius:4px}#ph i{position:absolute;bottom:2px;left:2px;background:#1f9d55;color:#fff;font-size:11px;padding:0 5px;border-radius:4px;font-style:normal}
+.sv{position:sticky;bottom:0;background:#fffe;padding:10px 12px;display:flex;gap:8px;border-top:1px solid #ddd;margin:0 -12px;z-index:3}
+.tg label{display:flex;gap:10px;align-items:center;font-size:15px;color:#151515;margin:0;padding:8px 0}.tg input{width:20px;height:20px}
+details summary{cursor:pointer;color:#1f9d55;font-weight:600;padding:6px 0}
+</style></head><body><main>
+<h1>Çözüm Emlak Yönetim</h1>
+<div id="login" class="card"><div class="f"><input id="u" placeholder="Kullanıcı adı"><input id="p" type="password" placeholder="Şifre" onkeydown="if(event.key==='Enter')login()"></div><br><button class="g" onclick="login()">Giriş yap</button> <span id="le" style="color:#c8102e"></span></div>
+<div id="pan" hidden>
+<div id="tb"><button class="g" onclick="edit()">+ Yeni ilan</button> <button class="w" onclick="locs()">Konumlar</button> <button class="w" onclick="settings()">Ayarlar</button> <button class="w" onclick="leads()">Talepler</button> <button class="w" onclick="load()">Yenile</button></div>
+<div id="form" hidden></div><div id="list"></div><div id="ld"></div></div>
+<script src="fields.js"></script>
+<script>
+let T=sessionStorage.t||'',L=[],E=null,IM=[],LOC=[],PAN=[];const $=s=>document.querySelector(s);
+const MAIN={konut:['net','age','floor'],isyeri:['net','age','floor'],arsa:['zoning','deed','ada'],vasita:['brand','year','km','fuel','gear']};
+const OPT={heating:['Kombi','Doğalgaz','Soba','Merkezi','Klima','Yok'],fuel:['Benzin','Dizel','LPG','Hibrit','Elektrik'],gear:['Manuel','Otomatik','Yarı otomatik'],zoning:['Konut','Ticari','Tarla','Bağ-Bahçe','Sanayi'],deed:['Müstakil tapu','Hisseli tapu','Kat irtifakı','Kat mülkiyeti'],furnished:['Eşyalı','Eşyasız'],body:['Sedan','Hatchback','SUV','Station','Pick-up']};
+const ROOMS=['1+0','1+1','2+1','3+1','4+1','5+1','6+'];
+const A=(p,o={})=>fetch('/api/'+p,{...o,headers:{authorization:'Bearer '+T,...(o.headers||{})}}).then(async r=>{if(r.status===401){sessionStorage.t='';location.reload()}return r.json()});
+async function login(){const r=await fetch('/api/login',{method:'POST',body:JSON.stringify({user:$('#u').value,pass:$('#p').value})}).then(r=>r.json());
+ if(r.token){T=r.token;sessionStorage.t=T;init()}else $('#le').textContent=r.error}
+async function loadLoc(){LOC=await fetch('/api/locations').then(r=>r.json())}
+async function init(){if(!T)return;$('#login').hidden=true;$('#pan').hidden=false;await loadLoc();await loadSettings();load()}
+async function load(){L=await A('admin/listings');$('#ld').innerHTML='';$('#form').hidden=true;$('#list').hidden=false;scrollTo(0,0);
+ $('#list').innerHTML=L.map(l=>`<div class="it"><img src="${esc(l.images[0]||PH)}" alt=""><div class="i"><b>${esc(l.title)}</b><br>${TL(l.price)} · ${l.type==='rent'?'Kiralık':'Satılık'} · ${esc(CATS[l.category])}<br><small>${esc([l.hood,l.district].filter(Boolean).join(', '))} · Bu ilan ${l.views} kişi tarafından görüntülendi</small></div>
+ <select style="width:auto" onchange="st(${l.id},this.value)">${['active','sold','rented'].map(s=>`<option value="${s}" ${l.status===s?'selected':''}>${{active:'Yayında',sold:'Satıldı',rented:'Kiralandı'}[s]}</option>`)}</select>
+ <button class="w" onclick="edit(${l.id})">Düzenle</button><a href="poster.html?id=${l.id}" target="_blank"><button class="g">Afiş Bas (PDF)</button></a><button class="r" onclick="del(${l.id})">Sil</button></div>`).join('')}
+async function st(id,s){const l=L.find(x=>x.id===id);l.status=s;await A('admin/listings/'+id,{method:'PUT',body:JSON.stringify(l)})}
+async function del(id){if(confirm('İlan silinsin mi? Satıldı/Kiralandı işaretlemek silmeden pasife alır.')){await A('admin/listings/'+id,{method:'DELETE'});load()}}
+// ---- konum
+const cities=()=>[...new Set(LOC.map(x=>x.city))],dists=c=>[...new Set(LOC.filter(x=>x.city===c).map(x=>x.district))],
+ hoods=(c,d)=>LOC.filter(x=>x.city===c&&x.district===d&&x.hood).map(x=>x.hood).sort((a,b)=>a.localeCompare(b,'tr'));
+async function addLoc(city,district,hoods){await A('admin/locations',{method:'POST',body:JSON.stringify({city,district,hoods})});await loadLoc()}
+const BACK='<button class="w" onclick="load()">← İlanlara dön</button>';
+function locs(){$('#form').hidden=true;$('#list').hidden=true;scrollTo(0,0);
+ $('#ld').innerHTML=BACK+`<div class="sec"><h3>Konum ekle (il, ilçe, mahalle)</h3><div class="f"><div><label>İl</label><input id="lc" value="Siirt"></div><div><label>İlçe</label><input id="lcd" placeholder="örn. Kurtalan"></div></div>
+ <label>Mahalleler: her satıra bir mahalle yazın veya yapıştırın</label><textarea id="lh" rows="5"></textarea><br><br><button class="g" onclick="saveLoc()">Ekle</button></div>`+
+ cities().map(c=>`<div class="sec"><h3>${esc(c)}</h3>${dists(c).map(d=>{const row=LOC.find(x=>x.city===c&&x.district===d&&!x.hood),hs=LOC.filter(x=>x.city===c&&x.district===d&&x.hood).sort((a,b)=>a.hood.localeCompare(b.hood,'tr'));
+ return `<details><summary>${esc(d)} (${hs.length} mahalle)</summary><div class="chips">${hs.map(h=>`<button class="w" onclick="dl(${h.id})">${esc(h.hood)} ×</button>`).join('')||'<small>Henüz mahalle yok. Yukarıdan ekleyin.</small>'}</div><br><button class="r" onclick="dl(${row?.id||0},1)">İlçeyi sil</button></details>`}).join('')}</div>`).join('')}
+async function saveLoc(){const c=$('#lc').value.trim(),d=$('#lcd').value.trim();if(!c||!d)return alert('İl ve ilçe yazın');
+ await addLoc(c,d,$('#lh').value.split('\n'));locs()}
+async function dl(id,district){if(!id||!confirm(district?'İlçe ve tüm mahalleleri silinsin mi? İlanlar etkilenmez.':'Mahalle silinsin mi?'))return;await A('admin/locations/'+id,{method:'DELETE'});await loadLoc();locs()}
+// ---- ilan formu
+function edit(id){E=JSON.parse(JSON.stringify(id?L.find(x=>x.id===id):{type:'sale',category:'konut',status:'active',agent:Object.keys(AGENTS)[0],attrs:{},images:[],city:'Siirt'}));
+ E.attrs._opts={calc:false,map:true,notify:true,...(E.attrs._opts||{})};if(!E.city)E.city=cities()[0]||'';IM=E.images;E.attrs._media={video:'',pano:[],...(E.attrs._media||{})};PAN=E.attrs._media.pano;
+ $('#ld').innerHTML='';$('#list').hidden=true;$('#form').hidden=false;draw();scrollTo(0,0)}
+function closeF(){$('#form').hidden=true;$('#list').hidden=false}
+function sync(){const g=i=>document.getElementById(i);if(!g('price'))return;
+ for(const k of['title','price','area','address','description','agent'])E[k]=g(k).value;E.price=+E.price||0;E.area=+E.area||null;
+ document.querySelectorAll('#form [data-k]').forEach(i=>E.attrs[i.dataset.k]=i.value);
+ document.querySelectorAll('#form [data-o]').forEach(i=>E.attrs._opts[i.dataset.o]=i.checked);
+ for(const k of['city','district','hood']){const v=g(k).value;if(v!=='__new')E[k]=v}E.images=IM;E.attrs._media={video:(g('video')?.value||'').trim(),pano:PAN}}
+const sel=(id,arr,cur,nw,ph)=>`<select id="${id}">${ph?'<option value="">Seçin</option>':''}${arr.map(x=>`<option ${x===cur?'selected':''}>${esc(x)}</option>`).join('')}${cur&&!arr.includes(cur)?`<option selected>${esc(cur)}</option>`:''}<option value="__new">＋ ${nw}</option></select>`;
+const fld=(k,n)=>`<div><label>${n}</label><input data-k="${k}" ${OPT[k]?`list="dl_${k}"`:''} value="${esc(E.attrs[k])}">${OPT[k]?`<datalist id="dl_${k}">${OPT[k].map(o=>`<option>${o}</option>`).join('')}</datalist>`:''}</div>`;
+function draw(){const all=(FIELDS[E.category]||[]).filter(f=>f[0]!=='m2'),main=MAIN[E.category]||[],O=E.attrs._opts,seg=(a,v,t)=>`<button data-a="${a}" data-v="${v}" class="${E[a]===v?'on':''}">${t}</button>`;
+ $('#form').innerHTML=`<div class="sec"><h3>1. Ne ilanı?</h3><div class="seg">${seg('type','sale','Satılık')}${seg('type','rent','Kiralık')}</div><br>
+ <div class="chips">${Object.entries(CATS).map(([k,v])=>`<button data-a="category" data-v="${k}" class="${E.category===k?'on':''}">${v}</button>`).join('')}</div></div>
+ <div class="sec"><h3>2. Fotoğraflar</h3><div id="dz">📷 Fotoğraf ekle (dokunun veya sürükleyin)</div><input id="fi" type="file" accept="image/*" multiple hidden><div id="ph"></div><small>Fotoğrafa dokunarak kapak yapın. Otomatik sıkıştırılır.</small></div>
+ <div class="sec"><h3>Video ve 360° (isteğe bağlı)</h3><label>Video: YouTube linki yapıştırın</label><input id="video" placeholder="https://youtu.be/..." value="${esc(E.attrs._media.video)}"><br><br>
+ <button class="w" data-a="vid">MP4 video yükle (en fazla ~100 MB)</button><input id="vf" type="file" accept="video/*" hidden>
+ <label style="margin-top:14px">360° fotoğraflar (2:1 panorama; telefon panoraması veya 360 kamera)</label><button class="w" data-a="pan">+ 360° fotoğraf ekle</button><input id="pf2" type="file" accept="image/*" multiple hidden><div id="pn"></div></div>
+ <div class="sec"><h3>3. Konum</h3><div class="f"><div><label>İl</label>${sel('city',cities(),E.city,'Yeni il')}</div><div><label>İlçe</label>${sel('district',dists(E.city),E.district,'Yeni ilçe',1)}</div><div><label>Mahalle</label>${sel('hood',hoods(E.city,E.district),E.hood,'Yeni mahalle',1)}</div></div>
+ <label>Sokak / adres (haritada gösterilir, isteğe bağlı)</label><input id="address" value="${esc(E.address)}"></div>
+ <div class="sec"><h3>4. Fiyat ve bilgiler</h3><div class="f"><div><label>Fiyat (₺)${E.type==='rent'?' / ay':''}</label><input id="price" type="number" inputmode="numeric" value="${E.price||''}"><small id="pf">${E.price?TL(E.price):''}</small></div>
+ ${E.category!=='vasita'?`<div><label>m²</label><input id="area" type="number" inputmode="numeric" value="${E.area||''}"></div>`:'<input id="area" type="hidden">'}</div>
+ ${E.category==='konut'?`<label>Oda sayısı</label><div class="chips">${ROOMS.map(r=>`<button data-a="room" data-v="${r}" class="${E.attrs.rooms===r?'on':''}">${r}</button>`).join('')}</div>`:''}
+ <div class="f">${all.filter(f=>main.includes(f[0])).map(f=>fld(...f)).join('')}</div>
+ <details><summary>Daha fazla detay</summary><div class="f">${all.filter(f=>!main.includes(f[0])&&f[0]!=='rooms').map(f=>fld(...f)).join('')}</div></details></div>
+ <div class="sec"><h3>5. Başlık ve açıklama</h3><label>Başlık (boş bırakırsanız otomatik yazılır)</label><input id="title" placeholder="${esc(auto())}" value="${esc(E.title)}">
+ <label>Açıklama (isteğe bağlı)</label><textarea id="description" rows="4">${esc(E.description)}</textarea>
+ <label>Danışman</label><select id="agent">${Object.keys(AGENTS).map(a=>`<option ${a===E.agent?'selected':''}>${a}</option>`)}</select></div>
+ <div class="sec tg"><h3>6. İlanda göster</h3><label><input type="checkbox" data-o="calc" ${O.calc?'checked':''}>Kredi & tapu harcı hesaplayıcı</label><label><input type="checkbox" data-o="map" ${O.map?'checked':''}>Harita konumu</label><label><input type="checkbox" data-o="notify" ${O.notify?'checked':''}>"Fiyatı düşünce haber et" butonu</label></div>
+ <div class="sv"><button class="g" style="flex:2" onclick="save()">Kaydet ve yayınla</button><button class="w" style="flex:1" onclick="closeF()">Vazgeç</button></div>`;photos();pans()}
+function auto(){const a=E.attrs,t=E.type==='rent'?'Kiralık':'Satılık',c={konut:'Daire',isyeri:'İşyeri',arsa:'Arsa',vasita:'Araç'}[E.category];
+ const h=E.category==='vasita'?[a.year,a.brand].filter(Boolean).join(' ')||t+' '+c:[E.category==='konut'&&a.rooms,t,c].filter(Boolean).join(' ');return h+(E.hood?' - '+E.hood:'')}
+const F=$('#form');
+F.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b){sync();const a=b.dataset.a,v=b.dataset.v;if(a==='vid')return $('#vf').click();if(a==='pan')return $('#pf2').click();if(a==='room')E.attrs.rooms=E.attrs.rooms===v?'':v;else{E[a]=v}draw();return}
+ if(e.target.id==='dz'||e.target.closest('#dz'))$('#fi').click()});
+F.addEventListener('change',async e=>{const t=e.target;
+ if(t.id==='fi'){up(t.files);return}if(t.id==='vf'){upVid(t.files[0]);return}if(t.id==='pf2'){upPan(t.files);return}
+ if(['city','district','hood'].includes(t.id)){const nw=t.value==='__new';sync();if(nw&&t.id==='hood'&&!E.district){alert('Önce ilçe seçin');draw();return}
+  if(nw){const n=(prompt({city:'Yeni il adı',district:'Yeni ilçe adı',hood:'Yeni mahalle adı'}[t.id])||'').trim();
+   if(n){if(t.id==='city'){const d=prompt('Bu ilin ilk ilçesi?');if(d){await addLoc(n,d.trim(),[]);E.city=n;E.district=d.trim();E.hood=''}}
+    else if(t.id==='district'){await addLoc(E.city,n,[]);E.district=n;E.hood=''}else{await addLoc(E.city,E.district,[n]);E.hood=n}}}
+  else if(t.id==='city'){E.district='';E.hood=''}else if(t.id==='district')E.hood='';
+  draw()}});
+F.addEventListener('input',e=>{if(e.target.id==='price')$('#pf').textContent=e.target.value?TL(e.target.value):''});
+const dz=()=>$('#dz');F.addEventListener('dragover',e=>{if(e.target.closest('#dz')){e.preventDefault();dz().classList.add('o')}});
+F.addEventListener('dragleave',()=>dz()&&dz().classList.remove('o'));F.addEventListener('drop',e=>{if(e.target.closest('#dz')){e.preventDefault();dz().classList.remove('o');up(e.dataTransfer.files)}});
+function photos(){$('#ph').innerHTML=IM.map((s,i)=>`<div><img src="${esc(s)}" alt="" onclick="IM.unshift(...IM.splice(${i},1));photos()">${i===0?'<i>Kapak</i>':''}<b onclick="IM.splice(${i},1);photos()">×</b></div>`).join('')}
+async function comp(file,mx=1600){const b=await createImageBitmap(file),s=Math.min(1,mx/Math.max(b.width,b.height)),c=document.createElement('canvas');
+ c.width=b.width*s;c.height=b.height*s;c.getContext('2d').drawImage(b,0,0,c.width,c.height);return new Promise(r=>c.toBlob(b=>b&&b.type==='image/webp'?r(b):c.toBlob(r,'image/jpeg',.82),'image/webp',.8))}
+async function up(files){$('#dz').textContent='Yükleniyor…';for(const f of files){const r=await A('admin/upload',{method:'POST',body:await comp(f)});if(r.url)IM.push(r.url)}sync();draw()}
+async function save(){sync();const d={...E};if(!d.title)d.title=auto();if(d.category==='arsa')d.attrs.m2=String(d.area||'');
+ if(!d.price&&!confirm('Fiyat girilmedi, yine de kaydedilsin mi?'))return;
+ await A('admin/listings'+(E.id?'/'+E.id:''),{method:E.id?'PUT':'POST',body:JSON.stringify(d)});closeF();load()}
+async function leads(){const r=await A('admin/leads');$('#form').hidden=true;$('#list').hidden=true;scrollTo(0,0);$('#ld').innerHTML=BACK+'<h3>Talepler</h3>'+r.map(x=>`<div class="it"><div class="i"><b>${esc(x.name)||'-'}</b> <a href="tel:${esc(x.phone)}">${esc(x.phone)}</a> · ${esc(x.kind)}<br>${esc(x.note)}<br><small>${x.created_at}</small></div></div>`).join('')}
+function pans(){$('#pn').innerHTML=PAN.map((s,i)=>`<div style="display:inline-block;position:relative;margin:4px"><img src="${esc(s)}" style="height:60px;border-radius:6px" alt=""><b onclick="PAN.splice(${i},1);pans()" style="position:absolute;top:2px;right:2px;background:#c8102e;color:#fff;cursor:pointer;padding:0 7px;border-radius:4px">×</b></div>`).join('')}
+async function upPan(files){for(const f of files){const r=await A('admin/upload',{method:'POST',body:await comp(f,4096)});if(r.url)PAN.push(r.url)}sync();draw()}
+async function upVid(f){if(!f)return;if(f.size>95e6)return alert("Video 100 MB'dan büyük. YouTube'a yükleyip linkini yapıştırın.");$('#video').placeholder='Yükleniyor…';
+ const r=await A('admin/upload?ext=mp4',{method:'POST',body:f,headers:{'content-type':'video/mp4'}});$('#video').value=r.url||'';sync();draw()}
+// ---- ayarlar
+let SET=null;
+async function settings(){$('#form').hidden=true;$('#list').hidden=true;scrollTo(0,0);await loadSettings();SET={phone:SITE.phone,wa:SITE.wa,instagram:SITE.instagram,ag:Object.entries(AGENTS)};drawSet()}
+function colSet(){SET.phone=$('#sp').value;SET.wa=$('#sw').value;SET.instagram=$('#si').value;SET.ag=[...document.querySelectorAll('[data-an]')].map(i=>[i.value.trim(),document.querySelector(`[data-ap="${i.dataset.an}"]`).value])}
+function drawSet(){$('#ld').innerHTML=BACK+`<div class="sec"><h3>İletişim bilgileri</h3><div class="f"><div><label>Ana telefon (Hemen Ara)</label><input id="sp" value="${esc(fmt(SET.phone))}"></div><div><label>Ana WhatsApp numarası</label><input id="sw" value="${esc(fmt(SET.wa))}"></div><div><label>Instagram kullanıcı adı</label><input id="si" placeholder="cozumemlak" value="${esc(SET.instagram)}"></div></div>
+ <h3 style="margin-top:16px">Danışmanlar</h3>${SET.ag.map(([n,p],i)=>`<div class="f" style="margin:6px 0"><input data-an="${i}" placeholder="Ad Soyad" value="${esc(n)}"><input data-ap="${i}" placeholder="05xx xxx xx xx" value="${esc(fmt(p))}"><button class="r" onclick="colSet();SET.ag.splice(${i},1);drawSet()">Sil</button></div>`).join('')}
+ <button class="w" onclick="colSet();SET.ag.push(['','']);drawSet()">+ Danışman ekle</button><br><br><button class="g" onclick="saveSet()">Kaydet</button></div>`}
+async function saveSet(){colSet();const agents={};SET.ag.filter(a=>a[0]&&a[1]).forEach(([n,p])=>agents[n]=norm(p));
+ if(!Object.keys(agents).length||!norm(SET.phone))return alert('En az bir danışman ve ana telefon gerekli');
+ const ig=SET.instagram.trim().replace(/^.*instagram\.com\//,'').replace(/[@\/?].*$/,'');
+ await A('admin/settings',{method:'PUT',body:JSON.stringify({phone:norm(SET.phone),wa:norm(SET.wa)||norm(SET.phone),instagram:ig,agents})});await loadSettings();alert('Kaydedildi. Siteye anında yansır.');load()}
+init();
+</script></main></body></html>

@@ -1,0 +1,17 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Afiş</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>@page{size:A4;margin:0}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;margin:0;font-family:system-ui,sans-serif;width:210mm;min-height:297mm;border-top:14mm solid #c8102e}
+.w{padding:10mm 14mm}h1{font-size:34pt;margin:0 0 4mm}.p{font-size:46pt;font-weight:800;color:#1f9d55}img.m{width:100%;height:100mm;object-fit:cover;border-radius:4mm}
+table{width:100%;font-size:15pt;border-collapse:collapse;margin:6mm 0}td{padding:2mm;border-bottom:1px solid #ccc}td:first-child{color:#666}
+.f{display:flex;justify-content:space-between;align-items:center;gap:8mm;border-top:3mm solid #1f9d55;padding-top:5mm}.f b{font-size:22pt}#q{flex:none}
+@media screen{.np{position:fixed;top:8px;right:8px}}@media print{.np{display:none}}</style></head><body>
+<button class="np" onclick="print()">Yazdır / PDF kaydet</button><div class="w" id="o">Yükleniyor…</div>
+<script src="fields.js"></script><script>
+(async()=>{await loadSettings();const id=new URLSearchParams(location.search).get('id'),l=await fetch('/api/listings/'+id+'?v=0').then(r=>r.json());
+const rows=[['Mahalle',l.hood],['m²',l.area],...(FIELDS[l.category]||[]).map(([k,n])=>[n,l.attrs[k]])].filter(r=>r[1]).slice(0,8);
+const url=location.origin+'/ilan/'+l.id,tel=Object.entries(AGENTS).find(a=>a[0]===l.agent)||['',SITE.phone];
+document.getElementById('o').innerHTML=`<h1>${esc(l.title)}</h1><div class="p">${TL(l.price)}${l.type==='rent'?' / ay':''}</div>${l.images[0]?`<img class="m" src="${esc(l.images[0])}">`:''}
+<table>${rows.map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`).join('')}</table>
+<div class="f"><div><b>${esc(l.agent)}</b><br><b>${fmt(tel[1])}</b><br>ÇÖZÜM EMLAK Gayrimenkul & Danışmanlık</div><div id="q"></div></div>`;
+new QRCode(document.getElementById('q'),{text:url,width:150,height:150});setTimeout(()=>print(),900)})();
+</script></body></html>
